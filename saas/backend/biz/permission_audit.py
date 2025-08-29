@@ -16,6 +16,8 @@ import openpyxl
 from django.http import StreamingHttpResponse
 from openpyxl.styles import Font, colors
 
+from backend.apps.group.models import Group
+from backend.apps.organization.models import User
 from backend.apps.policy.models import Policy
 from backend.apps.template.models import PermTemplate, PermTemplatePolicyAuthorized
 from backend.biz.constants import PermissionTypeEnum
@@ -127,8 +129,19 @@ class QueryAuthorizedSubjects(object):
             "resource": resources,
             "limit": self.limit,
         }
+        subjects = self.engine_svc.query_subjects_by_resource_instance(query_data=query_data)
+        results = []
+        for subject in subjects:
+            if subject["type"] == SubjectType.USER.value and User.objects.filter(
+                username=subject["id"], tenant_id=self.tenant_id
+            ):
+                results.append(subject)
+            if subject["type"] == SubjectType.GROUP.value and Group.objects.filter(
+                id=subject["id"], tenant_id=self.tenant_id
+            ):
+                results.append(subject)
 
-        return self.engine_svc.query_subjects_by_resource_instance(query_data=query_data)
+        return results
 
     def _gen_resource_instance_info(self, resource_instances):
         """
