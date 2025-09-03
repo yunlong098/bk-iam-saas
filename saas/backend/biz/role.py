@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Set
 from blue_krill.web.std_error import APIError
 from django.conf import settings
 from django.db import connection
-from django.db.models import Case, Q, Value, When
+from django.db.models import Case, Q, QuerySet, Value, When
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext as _
@@ -1380,9 +1380,14 @@ def get_global_notification_config(tenant_id: str) -> Dict[str, Any]:
     return notification_config.config
 
 
-def update_periodic_permission_expire_remind_schedule(hour: int, minute: int) -> None:
+def get_all_global_notification_config() -> QuerySet:
+    """获取所有全局通知配置"""
+    return RolePolicyExpiredNotificationConfig.objects.all()
+
+
+def update_periodic_permission_expire_remind_schedule(hour: int, minute: int, tenant_id: str) -> None:
     """更新周期性权限到期提醒调度"""
-    name = "periodic_permission_expire_remind"
+    name = f"periodic_permission_expire_remind_{tenant_id}"
 
     task = PeriodicTask.objects.filter(name=name).prefetch_related("crontab").first()
     if not task:
@@ -1399,6 +1404,7 @@ def update_periodic_permission_expire_remind_schedule(hour: int, minute: int) ->
             crontab=schedule,
             name=name,
             task="config.celery_app.permission_expire_remind",
+            kwargs={"tenant_id": tenant_id},
         )
         return
 

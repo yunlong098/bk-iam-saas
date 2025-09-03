@@ -149,12 +149,12 @@ current_app.register_task(SendUserExpireRemindMailTask())
 
 
 @shared_task(ignore_result=True)
-def user_group_policy_expire_remind():
+def user_group_policy_expire_remind(tenant_id: str):
     """
     用户的用户组，自定义权限过期检查
     """
     # 获取配置
-    notification_config = get_global_notification_config()
+    notification_config = get_global_notification_config(tenant_id)
 
     if not need_run_expired_remind(notification_config):
         return
@@ -165,7 +165,7 @@ def user_group_policy_expire_remind():
     username_set = set()  # 用于去重
 
     # 1. 查询有自定义授权的用户
-    qs = Policy.objects.filter(subject_type=SubjectType.USER.value).only("subject_id")
+    qs = Policy.objects.filter(subject_type=SubjectType.USER.value, tenant_id=tenant_id).only("subject_id")
     paginator = Paginator(qs, 1000)
 
     for i in paginator.page_range:
@@ -181,7 +181,7 @@ def user_group_policy_expire_remind():
             )
 
     # 2. 查询用户组成员过期
-    group_biz = GroupBiz()
+    group_biz = GroupBiz(tenant_id)
     group_subjects = group_biz.list_group_subject_before_expired_at(expired_at_before)
     for gs in group_subjects:
         if gs.subject.type != SubjectType.USER.value:
@@ -193,6 +193,10 @@ def user_group_policy_expire_remind():
 
         username = gs.subject.id
         if username in username_set:
+            continue
+
+        # 如果不是当前租户用户跳过
+        if not User.objects.filter(username=username, tenant_id=tenant_id).exists():
             continue
 
         username_set.add(username)

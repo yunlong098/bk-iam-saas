@@ -192,12 +192,12 @@ current_app.register_task(SendRoleGroupExpireRemindMailTask())
 
 
 @shared_task(ignore_result=True)
-def role_group_expire_remind():
+def role_group_expire_remind(tenant_id: str):
     """
     角色管理的用户组过期提醒
     """
     # 获取配置
-    notification_config = get_global_notification_config()
+    notification_config = get_global_notification_config(tenant_id)
 
     if not need_run_expired_remind(notification_config):
         return
@@ -205,9 +205,10 @@ def role_group_expire_remind():
     expired_at_before = get_expired_at(notification_config["expire_days_before"])
     expired_at_after = get_expired_at(notification_config["expire_days_after"] * -1)
 
-    group_biz = GroupBiz()
+    group_biz = GroupBiz(tenant_id)
 
-    group_id_set, role_id_set = set(), set()  # 去重用
+    group_id_set: Set[int] = set()  # 去重用
+    role_id_set: Set[int] = set()
 
     # 查询有过期成员的用户组关系
     group_subjects = group_biz.list_group_subject_before_expired_at(expired_at_before)
@@ -220,14 +221,14 @@ def role_group_expire_remind():
         if gs.expired_at < expired_at_after:
             continue
 
-        _add_group_role_set(group_id_set, role_id_set, int(gs.group.id))
+        _add_group_role_set(group_id_set, role_id_set, int(gs.group.id), tenant_id)
 
     # 查询人员模版过期的相关用户组
     qs = SubjectTemplateGroup.objects.filter(expired_at__range=(expired_at_after, expired_at_before))
     paginator = Paginator(qs, 100)
     for i in paginator.page_range:
         for stg in paginator.page(i):
-            _add_group_role_set(group_id_set, role_id_set, stg.group_id)
+            _add_group_role_set(group_id_set, role_id_set, stg.group_id, tenant_id)
 
     # 生成子任务
     for role_id in role_id_set:
@@ -236,7 +237,7 @@ def role_group_expire_remind():
         )
 
 
-def _add_group_role_set(group_id_set: Set[int], role_id_set: Set[int], group_id: int):
+def _add_group_role_set(group_id_set: Set[int], role_id_set: Set[int], group_id: int, tenant_id: str):
     if group_id in group_id_set:
         return
 
@@ -244,7 +245,7 @@ def _add_group_role_set(group_id_set: Set[int], role_id_set: Set[int], group_id:
 
     # 查询用户组对应的分级管理员
     relation = RoleRelatedObject.objects.filter(
-        object_type=RoleRelatedObjectType.GROUP.value, object_id=group_id
+        object_type=RoleRelatedObjectType.GROUP.value, object_id=group_id, tenant_id=tenant_id
     ).first()
 
     if not relation:
