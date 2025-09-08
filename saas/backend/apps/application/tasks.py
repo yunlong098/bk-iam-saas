@@ -39,11 +39,9 @@ def check_or_update_application_status():
     if not paginator.count:
         return
 
-    # FIXME(tenant): 需要按照申请单的租户进行分组查询
-    biz = ApplicationBiz()
     for i in paginator.page_range:
         applications = list(paginator.page(i))
-
+        biz = ApplicationBiz(applications[0].tenant_id)
         # 查询 ITSM 可能出错，若出错，则记录日志，继续执行其他的
         try:
             id_status_dict = biz.query_application_approval_status(applications)
@@ -53,6 +51,7 @@ def check_or_update_application_status():
 
         # 遍历每个申请单，进行审批处理
         for application in applications:
+            biz = ApplicationBiz(application.tenant_id)
             try:
                 status = id_status_dict.get(application.id)
                 # 若查询不到，则忽略

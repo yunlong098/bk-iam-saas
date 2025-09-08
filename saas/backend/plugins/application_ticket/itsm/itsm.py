@@ -202,8 +202,8 @@ class ITSMApplicationTicketProvider(ApplicationTicketProvider):
         status = ApplicationStatus.PENDING.value
         if approve_result and end_at is not None:
             status = ApplicationStatus.PASS.value
-        elif not approve_result and end_at is not None and ticket_status == TicketStatus.FINISHED.value:
-            status = ApplicationStatus.REJECTED.value
+        elif not approve_result and end_at is not None:
+            status = ApplicationStatus.REJECT.value
         elif ticket_status in [TicketStatus.TERMINATION.value, TicketStatus.REVOKED.value]:
             status = ApplicationStatus.CANCELLED.value
 
