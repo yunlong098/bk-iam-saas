@@ -32,16 +32,17 @@ def check_or_update_application_status():
     检查并更新申请单据状态
     由于对接第三方审批系统后，回调权限中心可能出现极小概率回调失败，所以需要周期任务检查补偿
     """
-    # 查询未结束的申请单据
-    # TODO: 是否需要过滤超过多久没处理才查询，但也有可能导致某些单据无法快速回调
-    qs = Application.objects.filter(status=ApplicationStatus.PENDING.value)
     for tenant in BkUserClient(settings.BK_APP_TENANT_ID).list_tenant():
-        biz = ApplicationBiz(tenant_id=tenant["id"])
+        # 查询未结束的申请单据
+        # TODO: 是否需要过滤超过多久没处理才查询，但也有可能导致某些单据无法快速回调
+        qs = Application.objects.filter(status=ApplicationStatus.PENDING.value, tenant_id=tenant["id"])
+
         # 分页处理，避免调用 ITSM 查询超时问题
         paginator = Paginator(qs, 20)
         if not paginator.count:
             return
 
+        biz = ApplicationBiz(tenant_id=tenant["id"])
         for i in paginator.page_range:
             applications = list(paginator.page(i))
 
@@ -54,7 +55,6 @@ def check_or_update_application_status():
 
             # 遍历每个申请单，进行审批处理
             for application in applications:
-                biz = ApplicationBiz(tenant_id=tenant["id"])
                 try:
                     status = id_status_dict.get(application.id)
                     # 若查询不到，则忽略
