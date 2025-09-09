@@ -13,10 +13,12 @@ import logging
 from typing import List
 
 from celery import shared_task
+from django.conf import settings
 from django.core.paginator import Paginator
 from pydantic import parse_obj_as
 
 from backend.biz.application import ApplicationBiz, ApplicationRenewPolicyInfoBean
+from backend.component.client.bk_user import BkUserClient
 from backend.service.constants import ApplicationStatus
 
 from .models import Application
@@ -33,33 +35,34 @@ def check_or_update_application_status():
     # 查询未结束的申请单据
     # TODO: 是否需要过滤超过多久没处理才查询，但也有可能导致某些单据无法快速回调
     qs = Application.objects.filter(status=ApplicationStatus.PENDING.value)
+    for tenant in BkUserClient(settings.BK_APP_TENANT_ID).list_tenant():
+        biz = ApplicationBiz(tenant_id=tenant["id"])
+        # 分页处理，避免调用 ITSM 查询超时问题
+        paginator = Paginator(qs, 20)
+        if not paginator.count:
+            return
 
-    # 分页处理，避免调用 ITSM 查询超时问题
-    paginator = Paginator(qs, 20)
-    if not paginator.count:
-        return
+        for i in paginator.page_range:
+            applications = list(paginator.page(i))
 
-    for i in paginator.page_range:
-        applications = list(paginator.page(i))
-        biz = ApplicationBiz(applications[0].tenant_id)
-        # 查询 ITSM 可能出错，若出错，则记录日志，继续执行其他的
-        try:
-            id_status_dict = biz.query_application_approval_status(applications)
-        except Exception:  # pylint: disable=broad-except
-            logger.exception("check_or_update_application_status: query_application_approval_status fail")
-            continue
-
-        # 遍历每个申请单，进行审批处理
-        for application in applications:
-            biz = ApplicationBiz(application.tenant_id)
+            # 查询 ITSM 可能出错，若出错，则记录日志，继续执行其他的
             try:
-                status = id_status_dict.get(application.id)
-                # 若查询不到，则忽略
-                if status is None:
-                    continue
-                biz.handle_application_result(application, status)
+                id_status_dict = biz.query_application_approval_status(applications)
             except Exception:  # pylint: disable=broad-except
-                logger.exception("check_or_update_application_status: handle_application_result fail")
+                logger.exception("check_or_update_application_status: query_application_approval_status fail")
+                continue
+
+            # 遍历每个申请单，进行审批处理
+            for application in applications:
+                biz = ApplicationBiz(tenant_id=tenant["id"])
+                try:
+                    status = id_status_dict.get(application.id)
+                    # 若查询不到，则忽略
+                    if status is None:
+                        continue
+                    biz.handle_application_result(application, status)
+                except Exception:  # pylint: disable=broad-except
+                    logger.exception("check_or_update_application_status: handle_application_result fail")
 
 
 @shared_task(ignore_result=True)
