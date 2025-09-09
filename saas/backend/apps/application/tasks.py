@@ -40,7 +40,7 @@ def check_or_update_application_status():
         # 分页处理，避免调用 ITSM 查询超时问题
         paginator = Paginator(qs, 20)
         if not paginator.count:
-            return
+            continue
 
         biz = ApplicationBiz(tenant_id=tenant["id"])
         for i in paginator.page_range:
