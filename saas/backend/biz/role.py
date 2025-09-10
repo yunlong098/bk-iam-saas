@@ -1157,7 +1157,7 @@ class RoleSubjectScopeChecker:
                 if len(department_ancestors[int(s.id)] & department_scopes) == 0:
                     if raise_exception:
                         raise error_codes.FORBIDDEN.format(
-                            message=_("部门 ({}) 在分级管理员的授权范围内，请编辑分级管理员授权范围").format(s.id),
+                            message=_("部门 ({}) 不在分级管理员的授权范围内，请编辑分级管理员授权范围").format(s.id),
                             replace=True,
                         )
 
@@ -1172,7 +1172,7 @@ class RoleSubjectScopeChecker:
                 if len(department_set & department_scopes) == 0:
                     if raise_exception:
                         raise error_codes.FORBIDDEN.format(
-                            message=_("用户 ({}) 在分级管理员的授权范围内，请编辑分级管理员授权范围").format(s.id),
+                            message=_("用户 ({}) 不在分级管理员的授权范围内，请编辑分级管理员授权范围").format(s.id),
                             replace=True,
                         )
 

@@ -175,6 +175,7 @@ class GroupViewSet(BizMixin, TransMixin, mixins.RetrieveModelMixin, mixins.ListM
 
         # 检查人员模版是否在 role 的授权范围内
         self.group_check_biz.check_subject_template(request.role, subject_template_ids)
+        self.group_check_biz.check_subject_template_scope(request.role, subject_template_ids)
 
         with gen_group_upsert_lock(request.role.id):
             # 用户组名称在角色内唯一

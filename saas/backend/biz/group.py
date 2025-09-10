@@ -23,7 +23,7 @@ from backend.apps.group.models import Group, GroupAuthorizeLock
 from backend.apps.organization.models import User
 from backend.apps.policy.models import Policy as PolicyModel
 from backend.apps.role.models import Role, RoleGroupMember, RoleRelatedObject, RoleUser
-from backend.apps.subject_template.models import SubjectTemplate, SubjectTemplateGroup
+from backend.apps.subject_template.models import SubjectTemplate, SubjectTemplateGroup, SubjectTemplateRelation
 from backend.apps.template.models import PermTemplatePolicyAuthorized, PermTemplatePreUpdateLock
 from backend.biz.policy import PolicyBean, PolicyBeanList, PolicyOperationBiz
 from backend.biz.resource import ResourceBiz
@@ -1145,3 +1145,23 @@ class GroupCheckBiz:
         for subject_template_id in subject_template_ids:
             if subject_template_id not in exist_ids:
                 raise error_codes.VALIDATE_ERROR.format(_("人员模板不存在：{}").format(subject_template_id))
+
+    def check_subject_template_scope(self, role: Role, subject_template_ids: List[int]):
+        """
+        检查人员模板是否在授权范围
+        """
+        if not subject_template_ids:
+            return
+
+        subject_template_relations = SubjectTemplateRelation.objects.filter(
+            template_id__in=subject_template_ids
+        ).values_list("subject_type", "subject_id")
+        subjects = []
+        for s in subject_template_relations:
+            if s[0] == SubjectType.USER.value:
+                subjects.append(Subject.from_username(s[1]))
+            if s[0] == SubjectType.DEPARTMENT.value:
+                subjects.append(Subject.from_department_id(s[1]))
+
+        scope_checker = RoleSubjectScopeChecker(role)
+        scope_checker.check(subjects)
