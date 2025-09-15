@@ -369,8 +369,7 @@
             const paginationWrapper = tableRef.$refs.paginationWrapper;
             const selectCount = paginationWrapper.getElementsByClassName('bk-page-selection-count');
             if (selectCount && selectCount.length && selectCount[0].children) {
-              // 这里用String包括是因为DOMPurify会把number类型0变成空字符
-              selectCount[0].children[0].innerHTML = xssFilter(String(this.currentSelectList.length));
+              selectCount[0].children[0].innerHTML = xssFilter(this.currentSelectList.length);
             }
           }
         });

@@ -678,7 +678,7 @@
         this.$nextTick(() => {
           const selectionCount = document.getElementsByClassName('bk-page-selection-count');
           if (this.$refs.memberTemplateRef && selectionCount && selectionCount.length && selectionCount[0].children) {
-            selectionCount[0].children[0].innerHTML = xssFilter(String(this.currentSelectList.length));
+            selectionCount[0].children[0].innerHTML = xssFilter(this.currentSelectList.length);
           }
         });
       },

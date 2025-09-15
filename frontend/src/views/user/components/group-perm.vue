@@ -737,7 +737,7 @@
         this.$nextTick(() => {
           const selectionCount = document.getElementsByClassName('bk-page-selection-count');
           if (this.$refs.groupPermTableRef && selectionCount && selectionCount.length && selectionCount[0].children) {
-            selectionCount[0].children[0].innerHTML = xssFilter(String(this.currentSelectGroupList.length));
+            selectionCount[0].children[0].innerHTML = xssFilter(this.currentSelectGroupList.length);
           }
         });
       },

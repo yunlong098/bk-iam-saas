@@ -577,11 +577,11 @@
             const typeMap = {
               userOrgPerm: () => {
                 const list = checkList.filter((item) => ['user', 'department'].includes(item.type));
-                selectionCount[tableIndex].children[0].innerHTML = xssFilter(String(list.length));
+                selectionCount[tableIndex].children[0].innerHTML = xssFilter(list.length);
               },
               memberTemplate: () => {
                 const list = checkList.filter((item) => ['template'].includes(item.type));
-                selectionCount[tableIndex].children[0].innerHTML = xssFilter(String(list.length));
+                selectionCount[tableIndex].children[0].innerHTML = xssFilter(list.length);
               }
             };
             return typeMap[tabActive]();
