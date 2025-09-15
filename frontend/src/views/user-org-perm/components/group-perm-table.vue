@@ -605,7 +605,7 @@
         this.$nextTick(() => {
           const selectionCount = document.getElementsByClassName('bk-page-selection-count');
           if (this.$refs.groupPermRef && selectionCount && selectionCount.length && selectionCount[0].children) {
-            selectionCount[0].children[0].innerHTML = xssFilter(payload.length);
+            selectionCount[0].children[0].innerHTML = xssFilter(String(payload.length));
           }
         });
       },

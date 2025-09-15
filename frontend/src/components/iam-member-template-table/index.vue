@@ -254,7 +254,7 @@
             const paginationWrapper = tableRef.$refs.paginationWrapper;
             const selectCount = paginationWrapper.getElementsByClassName('bk-page-selection-count');
             if (selectCount && selectCount.length && selectCount[0].children) {
-              selectCount[0].children[0].innerHTML = xssFilter(this.currentSelectList.length);
+              selectCount[0].children[0].innerHTML = xssFilter(String(this.currentSelectList.length));
             }
           }
         });

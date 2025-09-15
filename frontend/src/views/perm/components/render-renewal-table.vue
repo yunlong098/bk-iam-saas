@@ -604,7 +604,7 @@
             const selectList = this.curFilterSystem && ['custom'].includes(this.type)
               ? this.currentSelectList.filter((item) => item.system.id === this.curFilterSystem)
               : cloneDeep(this.currentSelectList);
-            selectionCount[0].children[0].innerHTML = xssFilter(selectList.length);
+            selectionCount[0].children[0].innerHTML = xssFilter(String(selectList.length));
           }
         });
       },
