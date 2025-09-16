@@ -24,7 +24,7 @@ from django.utils import timezone
 from backend.apps.organization.models import User
 from backend.apps.policy.models import Policy
 from backend.apps.role.constants import NotificationTypeEnum
-from backend.apps.role.models import RoleUser
+from backend.apps.role.models import Role, RoleUser
 from backend.apps.subject.audit import log_user_cleanup_policy_audit_event
 from backend.apps.subject_template.models import SubjectTemplateRelation
 from backend.apps.user.models import UserPermissionCleanupRecord
@@ -372,7 +372,7 @@ class UserPermissionCleaner:
                 RoleType.GRADE_MANAGER.value,
                 RoleType.SUBSET_MANAGER.value,
             ):
-                self.role_with_perm_group_biz.delete_role_member(role, username)
+                self.role_with_perm_group_biz.delete_role_member(Role.objects.filter(id=role.id).first(), username)
 
             elif role.type == RoleType.SUPER_MANAGER.value:
                 self.role_biz.delete_super_manager_member(username)
