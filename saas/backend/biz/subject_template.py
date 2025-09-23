@@ -12,12 +12,12 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 from django.conf import settings
-from django.db import connection, transaction
+from django.db import transaction
 from django.db.models import Count
-from django.utils.timezone import make_aware, utc
 from django.utils.translation import gettext as _
 from pydantic import BaseModel
 
+from backend.apps.group.models import Group
 from backend.apps.organization.models import Department, User
 from backend.apps.role.models import Role, RoleGroupMember, RoleRelatedObject
 from backend.apps.subject_template.models import SubjectTemplate, SubjectTemplateGroup, SubjectTemplateRelation
@@ -267,49 +267,31 @@ class SubjectTemplateBiz:
         if group_ids is not None and len(group_ids) == 0:
             return 0
 
-        # 构建动态的 WHERE 子句
-        where_conditions = []
-        params = [subject.type, subject.id]
+        template_ids = SubjectTemplateRelation.objects.filter(
+            subject_type=subject.type,
+            subject_id=subject.id
+        ).values_list('template_id', flat=True)
+
+        group_id_list = SubjectTemplateGroup.objects.filter(
+            template_id__in=template_ids
+        ).values_list('group_id', flat=True)
+
+        groups = Group.objects.filter(id__in=group_id_list)
+
         if id:
-            where_conditions.append("a.id = %s")
-            params.append(id)  # type: ignore
+            groups = groups.filter(id=id)
         if name:
-            where_conditions.append("a.name LIKE %s")
-            params.append("%" + name + "%")
+            groups = groups.filter(name__icontains=name)
         if description:
-            where_conditions.append("a.description LIKE %s")
-            params.append("%" + description + "%")
+            groups = groups.filter(description__icontains=description)
         if hidden:
-            where_conditions.append("a.hidden = 0")
+            groups = groups.filter(hidden=False)
         if group_ids:
-            where_conditions.append("a.id IN %s")
-            params.append(tuple(group_ids))  # type: ignore
+            groups = groups.filter(id__in=group_ids)
         if system_id:
-            where_conditions.append("a.source_system_id = %s")
-            params.append(system_id)
+            groups = groups.filter(source_system_id=system_id)
 
-        sql_query = """
-            SELECT
-                COUNT(*)
-            FROM
-                group_group AS a
-            LEFT JOIN
-                subject_template_subjecttemplategroup AS b ON a.id = b.group_id
-            LEFT JOIN
-                subject_template_subjecttemplaterelation AS c ON b.template_id = c.template_id
-            WHERE
-                c.subject_type = %s AND c.subject_id = %s
-        """
-
-        if where_conditions:
-            sql_query += " AND " + " AND ".join(where_conditions)
-
-        with connection.cursor() as cursor:
-            cursor.execute(sql_query, params)
-            result = cursor.fetchone()
-
-        count = result[0] if result else 0
-        return count
+        return groups.count()
 
     def get_subject_department_template_group_count(
         self,
@@ -333,48 +315,31 @@ class SubjectTemplateBiz:
 
         department_ids = [str(department.id) for department in departments]
 
-        # 构建动态的 WHERE 子句
-        where_conditions = []
-        params = [SubjectType.DEPARTMENT.value, tuple(department_ids)]
+        template_ids = SubjectTemplateRelation.objects.filter(
+            subject_type=SubjectType.DEPARTMENT.value,
+            subject_id__in=department_ids
+        ).values_list('template_id', flat=True)
+
+        group_id_list = SubjectTemplateGroup.objects.filter(
+            template_id__in=template_ids
+        ).values_list('group_id', flat=True)
+
+        groups = Group.objects.filter(id__in=group_id_list)
+
         if id:
-            where_conditions.append("a.id = %s")
-            params.append(id)
+            groups = groups.filter(id=id)
         if name:
-            where_conditions.append("a.name LIKE %s")
-            params.append("%" + name + "%")
+            groups = groups.filter(name__icontains=name)
         if description:
-            where_conditions.append("a.description LIKE %s")
-            params.append("%" + description + "%")
+            groups = groups.filter(description__icontains=description)
         if hidden:
-            where_conditions.append("a.hidden = 0")
+            groups = groups.filter(hidden=False)
         if group_ids:
-            where_conditions.append("a.id IN %s")
-            params.append(tuple(group_ids))
+            groups = groups.filter(id__in=group_ids)
         if system_id:
-            where_conditions.append("a.source_system_id = %s")
-            params.append(system_id)
+            groups = groups.filter(source_system_id=system_id)
 
-        sql_query = """
-            SELECT
-                COUNT(*)
-            FROM
-                group_group AS a
-            LEFT JOIN
-                subject_template_subjecttemplategroup AS b ON a.id = b.group_id
-            LEFT JOIN
-                subject_template_subjecttemplaterelation AS c ON b.template_id = c.template_id
-            WHERE
-                c.subject_type = %s AND c.subject_id IN %s
-        """
-
-        if where_conditions:
-            sql_query += " AND " + " AND ".join(where_conditions)
-
-        with connection.cursor() as cursor:
-            cursor.execute(sql_query, params)
-            result = cursor.fetchone()
-
-        count = result[0] if result else 0
+        count = groups.count()
         return count
 
     def list_paging_subject_template_group(
@@ -392,76 +357,40 @@ class SubjectTemplateBiz:
         if group_ids is not None and len(group_ids) == 0:
             return []
 
-        # 构建动态的 WHERE 子句
-        where_conditions = []
-        params = [subject.type, subject.id]
-        if id:
-            where_conditions.append("a.id = %s")
-            params.append(id)  # type: ignore
-        if name:
-            where_conditions.append("a.name LIKE %s")
-            params.append("%" + name + "%")
-        if description:
-            where_conditions.append("a.description LIKE %s")
-            params.append("%" + description + "%")
-        if hidden:
-            where_conditions.append("a.hidden = 0")
-        if group_ids:
-            where_conditions.append("a.id IN %s")
-            params.append(tuple(group_ids))  # type: ignore
-        if system_id:
-            where_conditions.append("a.source_system_id = %s")
-            params.append(system_id)
+        template_ids = SubjectTemplateRelation.objects.filter(
+            subject_type=subject.type,
+            subject_id=subject.id
+        ).values_list('template_id', flat=True)
 
-        params.extend([limit, offset])  # type: ignore
+        result = []
+        for template_id in template_ids:
+            subject_template_groups = SubjectTemplateGroup.objects.filter(template_id=template_id).all()
+            for subject_template_group in subject_template_groups:
+                groups = Group.objects.filter(id=subject_template_group.group_id)
+                if id:
+                    groups = groups.filter(id=id)
+                if name:
+                    groups = groups.filter(name__icontains=name)
+                if description:
+                    groups = groups.filter(description__icontains=description)
+                if hidden:
+                    groups = groups.filter(hidden=False)
+                if group_ids:
+                    groups = groups.filter(id__in=group_ids)
+                if system_id:
+                    groups = groups.filter(source_system_id=system_id)
+                for group in groups:
+                    result.append(SubjectTemplateGroupBean(id=group.id,
+                                                           name=group.name,
+                                                           description=group.description,
+                                                           user_count=group.user_count,
+                                                           department_count=group.department_count,
+                                                           template_id=subject_template_group.template_id,
+                                                           expired_at=subject_template_group.expired_at,
+                                                           expired_at_display=expired_at_display(subject_template_group.expired_at),
+                                                           created_time=subject_template_group.created_time))
 
-        sql_query = """
-            SELECT
-                a.id,
-                a.name,
-                a.description,
-                a.user_count,
-                a.department_count,
-                b.template_id,
-                b.expired_at,
-                b.created_time
-            FROM
-                group_group AS a
-            LEFT JOIN
-                subject_template_subjecttemplategroup AS b ON a.id = b.group_id
-            LEFT JOIN
-                subject_template_subjecttemplaterelation AS c ON b.template_id = c.template_id
-            WHERE
-                c.subject_type = %s AND c.subject_id = %s
-        """
-
-        if where_conditions:
-            sql_query += " AND " + " AND ".join(where_conditions)
-
-        sql_query += " ORDER BY c.id DESC LIMIT %s OFFSET %s;"
-
-        with connection.cursor() as cursor:
-            cursor.execute(sql_query, params)
-
-            # 获取结果
-            result = cursor.fetchall()
-
-        beans = [
-            SubjectTemplateGroupBean(
-                id=one[0],
-                name=one[1],
-                description=one[2],
-                user_count=one[3],
-                department_count=one[4],
-                template_id=one[5],
-                expired_at=one[6],
-                expired_at_display=expired_at_display(one[6]),
-                created_time=make_aware(one[7], timezone=utc),
-            )
-            for one in result
-        ]
-
-        return beans
+        return result[offset : offset + limit]
 
     def list_paging_subject_department_template_group(
         self,
@@ -486,81 +415,45 @@ class SubjectTemplateBiz:
             return []
 
         department_dict = {str(department.id): department.name for department in departments}
+        department_ids = department_dict.keys()
+        templates = SubjectTemplateRelation.objects.filter(
+            subject_type=SubjectType.DEPARTMENT.value,
+            subject_id__in=department_ids
+        ).all()
 
-        # 构建动态的 WHERE 子句
-        params = [SubjectType.DEPARTMENT.value, tuple(department_dict.keys())]
-        where_conditions = []
-        if id:
-            where_conditions.append("a.id = %s")
-            params.append(id)
-        if name:
-            where_conditions.append("a.name LIKE %s")
-            params.append("%" + name + "%")
-        if description:
-            where_conditions.append("a.description LIKE %s")
-            params.append("%" + description + "%")
-        if hidden:
-            where_conditions.append("a.hidden = 0")
-        if group_ids:
-            where_conditions.append("a.id IN %s")
-            params.append(tuple(group_ids))
-        if system_id:
-            where_conditions.append("a.source_system_id = %s")
-            params.append(system_id)
+        res = []
+        for template in templates:
+            subject_template_groups = SubjectTemplateGroup.objects.filter(template_id=template.template_id).all()
+            for subject_template_group in subject_template_groups:
+                groups = Group.objects.filter(id=subject_template_group.group_id)
+                if id:
+                    groups = groups.filter(id=id)
+                if name:
+                    groups = groups.filter(name__icontains=name)
+                if description:
+                    groups = groups.filter(description__icontains=description)
+                if hidden:
+                    groups = groups.filter(hidden=False)
+                if group_ids:
+                    groups = groups.filter(id__in=group_ids)
+                if system_id:
+                    groups = groups.filter(source_system_id=system_id)
+                for group in groups:
+                    res.append(SubjectTemplateGroupBean(id=group.id,
+                                                           name=group.name,
+                                                           description=group.description,
+                                                           user_count=group.user_count,
+                                                           department_count=group.department_count,
+                                                           template_id=subject_template_group.template_id,
+                                                           expired_at=subject_template_group.expired_at,
+                                                           expired_at_display=expired_at_display(
+                                                               subject_template_group.expired_at),
+                                                           created_time=subject_template_group.created_time,
+                                                           department_id=int(template.subject_id),
+                                                                             department_name=department_dict.get(template.subject_id, ""),
+                                                                             ))
 
-        params.extend([limit, offset])
-
-        sql_query = """
-            SELECT
-                a.id,
-                a.name,
-                a.description,
-                a.user_count,
-                a.department_count,
-                b.template_id,
-                b.expired_at,
-                b.created_time,
-                c.subject_id
-            FROM
-                group_group AS a
-            LEFT JOIN
-                subject_template_subjecttemplategroup AS b ON a.id = b.group_id
-            LEFT JOIN
-                subject_template_subjecttemplaterelation AS c ON b.template_id = c.template_id
-            WHERE
-                c.subject_type = %s AND c.subject_id IN %s
-        """
-
-        if where_conditions:
-            sql_query += " AND " + " AND ".join(where_conditions)
-
-        sql_query += " ORDER BY c.id DESC LIMIT %s OFFSET %s;"
-
-        with connection.cursor() as cursor:
-            cursor.execute(sql_query, params)
-
-            # 获取结果
-            result = cursor.fetchall()
-
-        beans = []
-        for one in result:
-            bean = SubjectTemplateGroupBean(
-                id=one[0],
-                name=one[1],
-                description=one[2],
-                user_count=one[3],
-                department_count=one[4],
-                template_id=one[5],
-                expired_at=one[6],
-                expired_at_display=expired_at_display(one[6]),
-                created_time=make_aware(one[7], timezone=utc),
-                department_id=int(one[8]),
-                department_name=department_dict.get(one[8], ""),
-            )
-
-            beans.append(bean)
-
-        return beans
+        return res[offset: offset + limit]
 
     def get_user_departments(self, username: str) -> List[Department]:
         u = User.objects.filter(username=username).first()
