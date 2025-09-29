@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.core.management.base import BaseCommand
+
 from backend.biz.org_sync.syncer import Syncer
 from backend.biz.role import RoleBiz
 
@@ -16,7 +17,10 @@ from backend.biz.role import RoleBiz
 class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--bk_username", type=str, help="BK Username", required=True)
-        parser.add_argument("--has_super_permission", type=str, help="Has super permission", required=True)
+        parser.add_argument(
+            "--has_super_permission", type=bool, help="Has super permission", required=False, default=False
+        )
+
     def handle(self, *args, **options):
         bk_username = options["bk_username"]
         has_super_permission = options["has_super_permission"]
