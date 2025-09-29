@@ -130,14 +130,34 @@ class QueryAuthorizedSubjects(object):
             "limit": self.limit,
         }
         subjects = self.engine_svc.query_subjects_by_resource_instance(query_data=query_data)
+
+        user_subjects = [subject for subject in subjects if subject["type"] == SubjectType.USER.value]
+        group_subjects = [subject for subject in subjects if subject["type"] == SubjectType.GROUP.value]
+
+        # 批量查询用户
+        if user_subjects:
+            usernames = [subject["id"] for subject in user_subjects]
+            existing_users = User.objects.filter(username__in=usernames, tenant_id=self.tenant_id).values_list(
+                "username", flat=True
+            )
+            existing_user_set = set(existing_users)
+
+        # 批量查询用户组
+        if group_subjects:
+            group_ids = [subject["id"] for subject in group_subjects]
+            existing_groups = Group.objects.filter(id__in=group_ids, tenant_id=self.tenant_id).values_list(
+                "id", flat=True
+            )
+            existing_group_set = set(existing_groups)
+
+        # 过滤存在的主体
         results = []
         for subject in subjects:
-            if subject["type"] == SubjectType.USER.value and User.objects.filter(
-                username=subject["id"], tenant_id=self.tenant_id
-            ):
-                results.append(subject)
-            if subject["type"] == SubjectType.GROUP.value and Group.objects.filter(
-                id=subject["id"], tenant_id=self.tenant_id
+            if (
+                subject["type"] == SubjectType.USER.value
+                and subject["id"] in existing_user_set
+                or subject["type"] == SubjectType.GROUP.value
+                and subject["id"] in existing_group_set
             ):
                 results.append(subject)
 
