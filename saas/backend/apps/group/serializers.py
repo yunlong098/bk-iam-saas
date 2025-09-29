@@ -38,6 +38,8 @@ from backend.service.group_saas_attribute import GroupAttributeService
 
 class SearchMemberSLZ(serializers.Serializer):
     keyword = serializers.CharField(label="搜索关键词", allow_null=False, required=False, default="")
+    is_sorted = serializers.BooleanField(label="是否排序", default=False)
+    sort_type = serializers.ChoiceField(label="排序类型", choices=["asc", "desc"], default="asc")
 
 
 class GroupIdSLZ(serializers.Serializer):

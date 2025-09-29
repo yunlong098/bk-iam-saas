@@ -253,12 +253,21 @@ def delete_subject_departments_by_auto_paging(subjects: List[str]) -> None:
     return execute_all_data_by_paging(add_paging_subject_departments, subjects, 1000)
 
 
-def list_subject_member(_type: str, id: str, limit: int = 10, offset: int = 0) -> Dict:
+def list_subject_member(
+    _type: str, id: str, limit: int = 10, offset: int = 0, is_sorted: bool = False, sort_type: str = ""
+) -> Dict:
     """
     获取subject的成员列表
     """
     url_path = "/api/v1/web/group-members"
-    params = {"type": _type, "id": id, "limit": limit, "offset": offset}
+    params = {
+        "type": _type,
+        "id": id,
+        "limit": limit,
+        "offset": offset,
+        "is_sorted": is_sorted,
+        "sort_type": sort_type.upper(),
+    }
     return _call_iam_api(http_get, url_path, data=params)
 
 

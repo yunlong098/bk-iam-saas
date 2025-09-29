@@ -321,6 +321,11 @@ class GroupMemberViewSet(GroupPermissionMixin, GenericViewSet):
     )
     def list(self, request, *args, **kwargs):
         group = get_object_or_404(self.queryset, pk=kwargs["id"])
+        slz = SearchMemberSLZ(data=request.query_params)
+        slz.is_valid(raise_exception=True)
+
+        is_sorted = slz.validated_data["is_sorted"]
+        sort_type = slz.validated_data["sort_type"]
 
         # 校验权限
         checker = RoleObjectRelationChecker(request.role)
@@ -328,11 +333,10 @@ class GroupMemberViewSet(GroupPermissionMixin, GenericViewSet):
             raise error_codes.FORBIDDEN.format(message=_("用户组({})不在当前用户身份可访问的范围内").format(group.id), replace=True)
 
         if request.query_params.get("keyword"):
-            slz = SearchMemberSLZ(data=request.query_params)
-            slz.is_valid(raise_exception=True)
+
             keyword = slz.validated_data["keyword"].lower()
 
-            group_members = self.group_biz.search_member_by_keyword(group.id, keyword)
+            group_members = self.group_biz.search_member_by_keyword(group.id, keyword, is_sorted, sort_type)
 
             return Response({"results": [one.dict() for one in group_members]})
 
@@ -340,7 +344,7 @@ class GroupMemberViewSet(GroupPermissionMixin, GenericViewSet):
         limit = pagination.get_limit(request)
         offset = pagination.get_offset(request)
 
-        count, group_members = self.group_biz.list_paging_group_member(group.id, limit, offset)
+        count, group_members = self.group_biz.list_paging_group_member(group.id, limit, offset, is_sorted, sort_type)
         return Response({"count": count, "results": [one.dict() for one in group_members]})
 
     @swagger_auto_schema(

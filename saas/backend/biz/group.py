@@ -588,9 +588,11 @@ class GroupBiz:
 
         return group_member_beans
 
-    def list_paging_group_member(self, group_id: int, limit: int, offset: int) -> Tuple[int, List[GroupMemberBean]]:
+    def list_paging_group_member(
+        self, group_id: int, limit: int, offset: int, is_sorted: bool = False, sort_type: str = ""
+    ) -> Tuple[int, List[GroupMemberBean]]:
         """分页查询用户组成员，并给成员填充name/full_named等相关信息"""
-        count, relations = self.group_svc.list_paging_group_member(group_id, limit, offset)
+        count, relations = self.group_svc.list_paging_group_member(group_id, limit, offset, is_sorted, sort_type)
         return count, self._convert_to_group_members(relations)
 
     def list_paging_template_group_member(
@@ -808,10 +810,14 @@ class GroupBiz:
         queryset = Group.objects.filter(id__in=group_ids).only("name")
         return GroupNameDict(data={one.id: one.name for one in queryset})
 
-    def search_member_by_keyword(self, group_id: int, keyword: str) -> List[GroupMemberBean]:
+    def search_member_by_keyword(
+        self, group_id: int, keyword: str, is_sorted: bool = False, sort_type: str = ""
+    ) -> List[GroupMemberBean]:
         """根据关键词 获取指定用户组成员列表"""
         maximum_number_of_member = 1000
-        _, group_members = self.list_paging_group_member(group_id=group_id, limit=maximum_number_of_member, offset=0)
+        _, group_members = self.list_paging_group_member(
+            group_id=group_id, limit=maximum_number_of_member, offset=0, is_sorted=is_sorted, sort_type=sort_type
+        )
         hit_members = list(filter(lambda m: keyword in m.id.lower() or keyword in m.name.lower(), group_members))
 
         return hit_members
