@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 import os
 
 from celery import Celery
-from celery.schedules import crontab
 from kombu import Exchange, Queue
 
 # Set the default Django settings module for the 'celery' program.
@@ -36,26 +35,26 @@ app.conf.task_queues = [
 
 
 # set periodic tasks
-@app.on_after_finalize.connect
-def setup_periodic_tasks(sender, **kwargs):
-    from backend.biz.role import get_all_global_notification_config
-
-    for global_notification_config in get_all_global_notification_config():
-        tenant_id = global_notification_config.tenant_id
-        config = global_notification_config.config
-        hour, minute = [int(i) for i in config["send_time"].split(":")]
-
-        sender.add_periodic_task(
-            crontab(minute=minute, hour=hour),
-            permission_expire_remind.s(tenant_id),
-            name=f"periodic_permission_expire_remind_{tenant_id}",
-        )
-
-
-@app.task
-def permission_expire_remind(tenant_id: str):
-    from backend.apps.role.tasks import role_group_expire_remind
-    from backend.apps.user.tasks import user_group_policy_expire_remind
-
-    role_group_expire_remind.delay(tenant_id)
-    user_group_policy_expire_remind.delay(tenant_id)
+# @app.on_after_finalize.connect
+# def setup_periodic_tasks(sender, **kwargs):
+#     from backend.biz.role import get_all_global_notification_config
+#
+#     for global_notification_config in get_all_global_notification_config():
+#         tenant_id = global_notification_config.tenant_id
+#         config = global_notification_config.config
+#         hour, minute = [int(i) for i in config["send_time"].split(":")]
+#
+#         sender.add_periodic_task(
+#             crontab(minute=minute, hour=hour),
+#             permission_expire_remind.s(tenant_id),
+#             name=f"periodic_permission_expire_remind_{tenant_id}",
+#         )
+#
+#
+# @app.task
+# def permission_expire_remind(tenant_id: str):
+#     from backend.apps.role.tasks import role_group_expire_remind
+#     from backend.apps.user.tasks import user_group_policy_expire_remind
+#
+#     role_group_expire_remind.delay(tenant_id)
+#     user_group_policy_expire_remind.delay(tenant_id)
