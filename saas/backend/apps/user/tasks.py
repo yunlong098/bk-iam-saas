@@ -360,14 +360,15 @@ class UserPermissionCleaner:
         roles = self.role_biz.list_user_role(username)
         role_ids = [role.id for role in roles]
         if before_at:
-            role_users = RoleUser.objects.filter(
-                role_id__in=role_ids,
-                username=username,
-                created_time__lte=timestamp_to_local(before_at),
+            role_ids = list(
+                RoleUser.objects.filter(
+                    role_id__in=role_ids,
+                    username=username,
+                    created_time__lte=timestamp_to_local(before_at),
+                ).values_list("role_id", flat=True)
             )
-            role_ids = [r.role_id for r in role_users]
 
-        roles = list(Role.objects.filter(id__in=role_ids).all())
+        roles = Role.objects.filter(id__in=role_ids)
 
         for role in roles:
             if role.type in (
