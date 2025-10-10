@@ -42,7 +42,16 @@ logger = logging.getLogger("celery")
 
 
 @shared_task(ignore_result=True)
-def sync_organization(tenant_id: str, executor: str = SYNC_TASK_DEFAULT_EXECUTOR) -> int:
+def sync_organization(tenant_id: str = "default", executor: str = SYNC_TASK_DEFAULT_EXECUTOR):
+    if tenant_id == "default":
+        for tenant in BkUserClient(settings.BK_APP_TENANT_ID).list_tenant():
+            _sync_organization(tenant["id"])
+    else:
+        _sync_organization(tenant_id, executor)
+
+
+@shared_task(ignore_result=True)
+def _sync_organization(tenant_id: str, executor: str = SYNC_TASK_DEFAULT_EXECUTOR) -> int:
     try:
         # 分布式锁，避免同一时间该任务多个 worker 执行
         with gen_organization_sync_lock(tenant_id):  # type: ignore[attr-defined]
