@@ -268,13 +268,12 @@ class SubjectTemplateBiz:
             return 0
 
         template_ids = SubjectTemplateRelation.objects.filter(
-            subject_type=subject.type,
-            subject_id=subject.id
-        ).values_list('template_id', flat=True)
+            subject_type=subject.type, subject_id=subject.id
+        ).values_list("template_id", flat=True)
 
-        group_id_list = SubjectTemplateGroup.objects.filter(
-            template_id__in=template_ids
-        ).values_list('group_id', flat=True)
+        group_id_list = SubjectTemplateGroup.objects.filter(template_id__in=template_ids).values_list(
+            "group_id", flat=True
+        )
 
         groups = Group.objects.filter(id__in=group_id_list)
 
@@ -316,13 +315,12 @@ class SubjectTemplateBiz:
         department_ids = [str(department.id) for department in departments]
 
         template_ids = SubjectTemplateRelation.objects.filter(
-            subject_type=SubjectType.DEPARTMENT.value,
-            subject_id__in=department_ids
-        ).values_list('template_id', flat=True)
+            subject_type=SubjectType.DEPARTMENT.value, subject_id__in=department_ids
+        ).values_list("template_id", flat=True)
 
-        group_id_list = SubjectTemplateGroup.objects.filter(
-            template_id__in=template_ids
-        ).values_list('group_id', flat=True)
+        group_id_list = SubjectTemplateGroup.objects.filter(template_id__in=template_ids).values_list(
+            "group_id", flat=True
+        )
 
         groups = Group.objects.filter(id__in=group_id_list)
 
@@ -358,9 +356,8 @@ class SubjectTemplateBiz:
             return []
 
         template_ids = SubjectTemplateRelation.objects.filter(
-            subject_type=subject.type,
-            subject_id=subject.id
-        ).values_list('template_id', flat=True)
+            subject_type=subject.type, subject_id=subject.id
+        ).values_list("template_id", flat=True)
 
         result = []
         for template_id in template_ids:
@@ -380,15 +377,19 @@ class SubjectTemplateBiz:
                 if system_id:
                     groups = groups.filter(source_system_id=system_id)
                 for group in groups:
-                    result.append(SubjectTemplateGroupBean(id=group.id,
-                                                           name=group.name,
-                                                           description=group.description,
-                                                           user_count=group.user_count,
-                                                           department_count=group.department_count,
-                                                           template_id=subject_template_group.template_id,
-                                                           expired_at=subject_template_group.expired_at,
-                                                           expired_at_display=expired_at_display(subject_template_group.expired_at),
-                                                           created_time=subject_template_group.created_time))
+                    result.append(
+                        SubjectTemplateGroupBean(
+                            id=group.id,
+                            name=group.name,
+                            description=group.description,
+                            user_count=group.user_count,
+                            department_count=group.department_count,
+                            template_id=subject_template_group.template_id,
+                            expired_at=subject_template_group.expired_at,
+                            expired_at_display=expired_at_display(subject_template_group.expired_at),
+                            created_time=subject_template_group.created_time,
+                        )
+                    )
 
         return result[offset : offset + limit]
 
@@ -417,11 +418,10 @@ class SubjectTemplateBiz:
         department_dict = {str(department.id): department.name for department in departments}
         department_ids = department_dict.keys()
         templates = SubjectTemplateRelation.objects.filter(
-            subject_type=SubjectType.DEPARTMENT.value,
-            subject_id__in=department_ids
+            subject_type=SubjectType.DEPARTMENT.value, subject_id__in=department_ids
         ).all()
 
-        res = []
+        result = []
         for template in templates:
             subject_template_groups = SubjectTemplateGroup.objects.filter(template_id=template.template_id).all()
             for subject_template_group in subject_template_groups:
@@ -439,21 +439,23 @@ class SubjectTemplateBiz:
                 if system_id:
                     groups = groups.filter(source_system_id=system_id)
                 for group in groups:
-                    res.append(SubjectTemplateGroupBean(id=group.id,
-                                                           name=group.name,
-                                                           description=group.description,
-                                                           user_count=group.user_count,
-                                                           department_count=group.department_count,
-                                                           template_id=subject_template_group.template_id,
-                                                           expired_at=subject_template_group.expired_at,
-                                                           expired_at_display=expired_at_display(
-                                                               subject_template_group.expired_at),
-                                                           created_time=subject_template_group.created_time,
-                                                           department_id=int(template.subject_id),
-                                                                             department_name=department_dict.get(template.subject_id, ""),
-                                                                             ))
+                    result.append(
+                        SubjectTemplateGroupBean(
+                            id=group.id,
+                            name=group.name,
+                            description=group.description,
+                            user_count=group.user_count,
+                            department_count=group.department_count,
+                            template_id=subject_template_group.template_id,
+                            expired_at=subject_template_group.expired_at,
+                            expired_at_display=expired_at_display(subject_template_group.expired_at),
+                            created_time=subject_template_group.created_time,
+                            department_id=int(template.subject_id),
+                            department_name=department_dict.get(template.subject_id, ""),
+                        )
+                    )
 
-        return res[offset: offset + limit]
+        return result[offset : offset + limit]
 
     def get_user_departments(self, username: str) -> List[Department]:
         u = User.objects.filter(username=username).first()
