@@ -64,7 +64,9 @@ class Command(BaseCommand):
             self.group_biz.grant(role, read_group, read_group_templates, need_check=False)
 
     def get_target_role(self, system_id: str):
-        roles = Role.objects.filter(type=RoleType.GRADE_MANAGER.value)
+        biz_info = self.get_biz_info()
+        biz_name_list = list(biz_info.keys())
+        roles = Role.objects.filter(type=RoleType.GRADE_MANAGER.value, name__in=biz_name_list)
         action_ids = self._get_ops_action_ids(system_id) + self._get_read_action_ids(system_id)
         action_ids = set(action_ids)
         target_roles_groups = []
