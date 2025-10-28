@@ -51,7 +51,7 @@ class Command(BaseCommand):
             auth_scope_list.append(self._init_system_auth_scope(system_id, instance))
 
             # 更新管理空间授权范围
-            self.role_biz.update_role_auth_scope(role.id, auth_scope_list)
+            self.role_biz.incr_update_auth_scope(role, auth_scope_list)
 
             # 更新运维组和查看组的授权模板
             ops_group_templates = self._generate_group_auth_templates(

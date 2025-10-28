@@ -142,7 +142,6 @@ class RoleBiz:
     list_members_by_role_id = RoleService.__dict__["list_members_by_role_id"]
 
     transfer_groups_role = RoleService.__dict__["transfer_groups_role"]
-    update_role_auth_scope = RoleService.__dict__["update_role_auth_scope"]
 
     def get_role_scope_include_user(self, role_id: int, username: str) -> Optional[Role]:
         """
