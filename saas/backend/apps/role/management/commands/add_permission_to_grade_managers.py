@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from typing import List
 
+from blue_krill.web.std_error import APIError
 from django.core.management.base import BaseCommand
 
 from backend.apps.group.models import Group
@@ -37,14 +38,22 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         system_id = options["system_id"]
-
-        target_roles_groups = self.get_target_role(system_id)
         biz_info = self.get_biz_info()
-        for target_role_group in target_roles_groups:
-            role = target_role_group["role"]["role"]
-            auth_scope_list = target_role_group["role"]["auth_scope_list"]
-            ops_group = target_role_group["ops_group"]
-            read_group = target_role_group["read_group"]
+        biz_name_list = list(biz_info.keys())
+        roles = Role.objects.filter(type=RoleType.GRADE_MANAGER.value, name__in=biz_name_list)
+        for role in roles:
+            role_related_objects = RoleRelatedObject.objects.filter(
+                role_id=role.id, object_type=RoleRelatedObjectType.GROUP.value
+            )
+            group_ids = [role_related_object.object_id for role_related_object in role_related_objects]
+            ops_group = Group.objects.filter(
+                id__in=group_ids, name=role.name + ManagementGroupNameSuffixEnum.OPS.value
+            ).first()
+            read_group = Group.objects.filter(
+                id__in=group_ids, name=role.name + ManagementGroupNameSuffixEnum.READ.value
+            ).first()
+            auth_scope_list = self.role_biz.list_auth_scope(role.id)
+
             instance = ResourceInstance(
                 system_id=system_id, type="biz", id=biz_info[role.name]["bk_biz_id"], name=role.name
             )
@@ -60,53 +69,12 @@ class Command(BaseCommand):
             read_group_templates = self._generate_group_auth_templates(
                 auth_scope_list, ManagementCommonActionNameEnum.READ.value
             )
-            self.group_biz.grant(role, ops_group, ops_group_templates, need_check=False)
-            self.group_biz.grant(role, read_group, read_group_templates, need_check=False)
-
-    def get_target_role(self, system_id: str):
-        biz_info = self.get_biz_info()
-        biz_name_list = list(biz_info.keys())
-        roles = Role.objects.filter(type=RoleType.GRADE_MANAGER.value, name__in=biz_name_list)
-        action_ids = self._get_ops_action_ids(system_id) + self._get_read_action_ids(system_id)
-        action_ids = set(action_ids)
-        target_roles_groups = []
-        for role in roles:
-            role_related_objects = RoleRelatedObject.objects.filter(
-                role_id=role.id, object_type=RoleRelatedObjectType.GROUP.value
-            )
-            group_ids = [role_related_object.object_id for role_related_object in role_related_objects]
-            ops_group = Group.objects.filter(
-                id__in=group_ids, name=role.name + ManagementGroupNameSuffixEnum.OPS.value
-            ).first()
-            read_group = Group.objects.filter(
-                id__in=group_ids, name=role.name + ManagementGroupNameSuffixEnum.READ.value
-            ).first()
-            auth_scope_list = self.role_biz.list_auth_scope(role.id)
-            system_ids = [auth_scope.system_id for auth_scope in auth_scope_list]
-            if ops_group and read_group and system_id in system_ids:
-                for auth_scope in auth_scope_list:
-                    if auth_scope.system_id == system_id:
-                        auth_scope_actions = {action.id for action in auth_scope.actions}
-                        if auth_scope_actions.issuperset(action_ids):
-                            break
-                        else:
-                            target_roles_groups.append(
-                                {
-                                    "role": {"role": role, "auth_scope_list": auth_scope_list},
-                                    "ops_group": ops_group,
-                                    "read_group": read_group,
-                                }
-                            )
-                            break
-            elif ops_group and read_group:
-                target_roles_groups.append(
-                    {
-                        "role": {"role": role, "auth_scope_list": auth_scope_list},
-                        "ops_group": ops_group,
-                        "read_group": read_group,
-                    }
-                )
-        return target_roles_groups
+            try:
+                self.group_biz.grant(role, ops_group, ops_group_templates, need_check=True)
+                self.group_biz.grant(role, read_group, read_group_templates, need_check=True)
+            except APIError as e:
+                self.stdout.write(f"grant group {ops_group.id} failed,error message: {e.message}")
+                continue
 
     def _init_system_auth_scope(self, system_id: str, instance: ResourceInstance):
         auth_scope = AuthScopeSystem(system_id=system_id, actions=[])
