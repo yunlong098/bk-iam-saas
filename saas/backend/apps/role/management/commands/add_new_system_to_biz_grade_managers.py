@@ -41,10 +41,11 @@ class Command(BaseCommand):
         biz_name_list = list(biz_info.keys())
         roles = Role.objects.filter(type=RoleType.GRADE_MANAGER.value, name__in=biz_name_list)
         for role in roles:
-            role_related_objects = RoleRelatedObject.objects.filter(
-                role_id=role.id, object_type=RoleRelatedObjectType.GROUP.value
+            group_ids = list(
+                RoleRelatedObject.objects.filter(
+                    role_id=role.id, object_type=RoleRelatedObjectType.GROUP.value
+                ).values_list("object_id", flat=True)
             )
-            group_ids = [role_related_object.object_id for role_related_object in role_related_objects]
             ops_group = Group.objects.filter(
                 id__in=group_ids, name=role.name + ManagementGroupNameSuffixEnum.OPS.value
             ).first()
@@ -55,8 +56,7 @@ class Command(BaseCommand):
             instance = ResourceInstance(
                 system_id=system_id, type="biz", id=biz_info[role.name]["bk_biz_id"], name=role.name
             )
-            auth_scope_list = []
-            auth_scope_list.append(self._init_system_auth_scope(system_id, instance))
+            auth_scope_list = [self._init_system_auth_scope(system_id, instance)]
 
             # 更新管理空间授权范围
             self.role_biz.incr_update_auth_scope(role, auth_scope_list)
@@ -68,16 +68,18 @@ class Command(BaseCommand):
             read_group_templates = self._generate_group_auth_templates(
                 auth_scope_list, ManagementCommonActionNameEnum.READ.value
             )
-            try:
-                self.group_biz.grant(role, ops_group, ops_group_templates, need_check=True)
-                self.group_biz.grant(role, read_group, read_group_templates, need_check=True)
-            except Exception as e:
-                self.stdout.write(f"grant ops group for {role.name} failed,error message: {e}")
 
-            try:
-                self.group_biz.grant(role, read_group, read_group_templates, need_check=True)
-            except Exception as e:
-                self.stdout.write(f"grant read group for {role.name} failed,error message: {e}")
+            if ops_group:
+                try:
+                    self.group_biz.grant(role, ops_group, ops_group_templates, need_check=True)
+                except Exception as e:
+                    self.stdout.write(f"grant ops group for {role.name} failed,error message: {e}")
+
+            if read_group:
+                try:
+                    self.group_biz.grant(role, read_group, read_group_templates, need_check=True)
+                except Exception as e:
+                    self.stdout.write(f"grant read group for {role.name} failed,error message: {e}")
 
     def _init_system_auth_scope(self, system_id: str, instance: ResourceInstance):
         auth_scope = AuthScopeSystem(system_id=system_id, actions=[])
