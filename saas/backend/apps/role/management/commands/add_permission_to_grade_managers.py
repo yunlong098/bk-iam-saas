@@ -52,11 +52,11 @@ class Command(BaseCommand):
             read_group = Group.objects.filter(
                 id__in=group_ids, name=role.name + ManagementGroupNameSuffixEnum.READ.value
             ).first()
-            auth_scope_list = self.role_biz.list_auth_scope(role.id)
 
             instance = ResourceInstance(
                 system_id=system_id, type="biz", id=biz_info[role.name]["bk_biz_id"], name=role.name
             )
+            auth_scope_list = []
             auth_scope_list.append(self._init_system_auth_scope(system_id, instance))
 
             # 更新管理空间授权范围
