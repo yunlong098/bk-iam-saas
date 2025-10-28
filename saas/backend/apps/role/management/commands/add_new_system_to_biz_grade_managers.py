@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 from typing import List
 
-from blue_krill.web.std_error import APIError
 from django.core.management.base import BaseCommand
 
 from backend.apps.group.models import Group
@@ -72,9 +71,13 @@ class Command(BaseCommand):
             try:
                 self.group_biz.grant(role, ops_group, ops_group_templates, need_check=True)
                 self.group_biz.grant(role, read_group, read_group_templates, need_check=True)
-            except APIError as e:
-                self.stdout.write(f"grant group {ops_group.id} failed,error message: {e.message}")
-                continue
+            except Exception as e:
+                self.stdout.write(f"grant ops group for {role.name} failed,error message: {e}")
+
+            try:
+                self.group_biz.grant(role, read_group, read_group_templates, need_check=True)
+            except Exception as e:
+                self.stdout.write(f"grant read group for {role.name} failed,error message: {e}")
 
     def _init_system_auth_scope(self, system_id: str, instance: ResourceInstance):
         auth_scope = AuthScopeSystem(system_id=system_id, actions=[])
