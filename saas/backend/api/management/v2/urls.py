@@ -186,4 +186,28 @@ urlpatterns = [
         views.ManagementTemplateViewSet.as_view({"get": "list", "post": "create"}),
         name="open.management.v2.template",
     ),
+    # 支持多个管理空间的权限模板
+    path(
+        "templates/",
+        views.BatchTemplateViewSet.as_view({"post": "create", "patch": "partial_update"}),
+        name="open.management.v2.batch_template",
+    ),
+    # 模板预更新
+    path(
+        "templates/pre_update/",
+        views.BatchTemplatePreUpdateViewSet.as_view({"post": "create"}),
+        name="open.management.v2.template_pre_update",
+    ),
+    # 用户组同步预提交
+    path(
+        "/templates/groups/pre_sync/",
+        views.BatchTemplatePreGroupSyncViewSet.as_view({"post": "create"}),
+        name="open.management.v2.template_group_pre_sync",
+    ),
+    # 用户组批量预提交
+    path(
+        "/templates/groups/update_commit/",
+        views.BatchTemplateUpdateCommitViewSet.as_view({"post": "create"}),
+        name="template.management.v2.update_commit",
+    ),
 ]

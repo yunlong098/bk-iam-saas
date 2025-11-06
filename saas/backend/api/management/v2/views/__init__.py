@@ -38,7 +38,13 @@ from .subject import (
 )
 from .subject_template import ManagementGradeManagerSubjectTemplateViewSet
 from .subset_manager import ManagementSubsetManagerCreateListViewSet, ManagementSubsetManagerViewSet
-from .template import ManagementTemplateViewSet
+from .template import (
+    BatchTemplatePreGroupSyncViewSet,
+    BatchTemplatePreUpdateViewSet,
+    BatchTemplateUpdateCommitViewSet,
+    BatchTemplateViewSet,
+    ManagementTemplateViewSet,
+)
 
 __all__ = [
     "ManagementSystemManagerGroupViewSet",
@@ -67,4 +73,8 @@ __all__ = [
     "ManagementTemplateViewSet",
     "ManagementGroupMemberBatchExpiredAtViewSet",
     "ManagementGroupBatchExpiredAtRenewApplicationViewSet",
+    "BatchTemplateViewSet",
+    "BatchTemplatePreUpdateViewSet",
+    "BatchTemplatePreGroupSyncViewSet",
+    "BatchTemplateUpdateCommitViewSet",
 ]

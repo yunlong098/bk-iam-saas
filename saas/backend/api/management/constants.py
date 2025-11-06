@@ -91,6 +91,11 @@ class ManagementAPIEnum(BaseAPIEnum):
     # 权限模版
     V2_GRADE_MANAGER_TEMPLATE_LIST = auto()
     V2_GRADE_MANAGER_TEMPLATE_CREATE = auto()
+    V2_BATCH_TEMPLATE_CREATE = auto()
+    V2_BATCH_TEMPLATE_UPDATE = auto()
+    V2_BATCH_TEMPLATE_PRE_UPDATE = auto()
+    V2_BATCH_TEMPLATE_PRE_GROUP_SYNC = auto()
+    V2_BATCH_TEMPLATE_UPDATE_COMMIT = auto()
 
     _choices_labels = skip(
         (
@@ -161,6 +166,11 @@ class ManagementAPIEnum(BaseAPIEnum):
             # 权限模版
             (V2_GRADE_MANAGER_TEMPLATE_LIST, "[V2]获取分级管理员权限模版列表"),
             (V2_GRADE_MANAGER_TEMPLATE_CREATE, "[V2]创建分级管理员权限模版"),
+            (V2_BATCH_TEMPLATE_CREATE, "[V2]批量创建分级管理员权限模版"),
+            (V2_BATCH_TEMPLATE_UPDATE, "[V2]批量更新分级管理员权限模版基本信息"),
+            (V2_BATCH_TEMPLATE_PRE_UPDATE, "[V2]批量更新分级管理员权限模版预更新"),
+            (V2_BATCH_TEMPLATE_PRE_GROUP_SYNC, "[V2]批量更新分级管理员权限模版用户组同步预提交"),
+            (V2_BATCH_TEMPLATE_UPDATE_COMMIT, "[V2]批量更新分级管理员权限模版更新提交"),
         )
     )
 

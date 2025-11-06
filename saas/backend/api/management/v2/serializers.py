@@ -21,7 +21,13 @@ from backend.apps.group.serializers import GroupAuthorizationSLZ
 from backend.apps.role.models import Role, RoleUser
 from backend.apps.role.serializers import GradeMangerBaseInfoSLZ, RoleScopeSubjectSLZ
 from backend.apps.subject_template.models import SubjectTemplate
-from backend.apps.template.serializers import TemplateCreateSLZ, TemplateIdSLZ, TemplateListSchemaSLZ, TemplateListSLZ
+from backend.apps.template.serializers import (
+    GroupAuthorationPreUpdateSLZ,
+    TemplateCreateSLZ,
+    TemplateIdSLZ,
+    TemplateListSchemaSLZ,
+    TemplateListSLZ,
+)
 from backend.biz.role import RoleCheckBiz
 from backend.biz.subject_template import SubjectTemplateBiz
 from backend.common.serializers import GroupMemberSLZ
@@ -482,3 +488,40 @@ class GroupBatchUpdateMemberSLZ(serializers.Serializer):
                 members.append(m)
 
         return members
+
+
+class BatchTemplateCreateSLZ(TemplateCreateSLZ):
+    role_ids = serializers.ListField(label="角色ID列表", child=serializers.IntegerField(label="角色ID"), allow_empty=False)
+
+
+class TemplateInfoSLZ(serializers.Serializer):
+    name = serializers.CharField(label="模板名称", max_length=128)
+    description = serializers.CharField(label="描述", max_length=255, allow_blank=True)
+    role_id = serializers.IntegerField(label="角色ID")
+    template_id = serializers.IntegerField(label="模板ID")
+
+
+class BatchTemplateUpdateSLZ(serializers.Serializer):
+    templates = serializers.ListField(label="模板列表", child=TemplateInfoSLZ(label="模板信息"), allow_empty=False)
+
+
+class BatchTemplatePreUpdateSLZ(serializers.Serializer):
+    action_ids = serializers.ListField(label="操作ID列表", child=serializers.CharField(label="动作ID"), allow_empty=False)
+    template_ids = serializers.ListField(
+        label="模板ID列表", child=serializers.IntegerField(label="模板ID"), allow_empty=False
+    )
+
+
+class BatchTemplateGroupSLZ(serializers.Serializer):
+    template_id = serializers.IntegerField(label="模板ID")
+    groups = serializers.ListField(label="用户组更新信息", child=GroupAuthorationPreUpdateSLZ(), allow_empty=False)
+
+
+class BatchTemplateGroupPreUpdateSLZ(serializers.Serializer):
+    template_groups = serializers.ListField(label="模板用户组更新信息", child=BatchTemplateGroupSLZ(), allow_empty=False)
+
+
+class BatchTemplateUpdateCommitSLZ(serializers.Serializer):
+    template_ids = serializers.ListField(
+        label="模板ID列表", child=serializers.IntegerField(label="模板ID"), allow_empty=False
+    )
