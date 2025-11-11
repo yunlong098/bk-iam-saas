@@ -453,40 +453,44 @@ class GradeManagerApproverHandler(PolicyProcessHandler):
         # label resource -> part policy
         resource_node_policy: Dict[ResourceNodeBean, PolicyBean] = {}
         # 只支持关联1个资源类型的操作查询资源审批人
-        if len(policy.list_thin_resource_type()) != 1:
+        if len(policy.list_thin_resource_type()) > 2:
             return resource_node_policy
 
         for rg in policy.resource_groups:
-            rrt: RelatedResourceBean = rg.related_resource_types[0]  # type: ignore
-            for condition in rrt.condition:
-                # 忽略有属性的condition
-                if not condition.has_no_attributes():
-                    continue
+            for rrt in rg.related_resource_types:
+                for condition in rrt.condition:
+                    # 忽略有属性的condition
+                    if not condition.has_no_attributes():
+                        continue
 
-                # 遍历所有的实例路径, 筛选出有查询有实例审批人的实例
-                for instance in condition.instances:
-                    for path in instance.path:
-                        first_node = path[0]
-                        if (first_node.system_id, first_node.type) not in settings.ROLE_RESOURCE_RELATION_TYPE_SET:
-                            continue
+                    # 遍历所有的实例路径, 筛选出有查询有实例审批人的实例
+                    for instance in condition.instances:
+                        for path in instance.path:
+                            first_node = path[0]
+                            if (first_node.system_id, first_node.type) not in settings.ROLE_RESOURCE_RELATION_TYPE_SET:
+                                continue
+                            if first_node.system_id != self.system_id:
+                                continue
 
-                        node = ResourceNodeBean.parse_obj(first_node)
-                        if node not in resource_node_policy:
-                            # copy part policy
-                            resource_node_policy[node] = copy_policy_by_instance_path(policy, rg, rrt, instance, path)
-                        else:
-                            # 合并到已有的policy中
-                            resource_node_policy[node].resource_groups[0].related_resource_types[0].condition[
-                                0
-                            ].add_instances(
-                                [
-                                    InstanceBean(
-                                        path=[path],
-                                        type=instance.type,
-                                        name=instance.name,
-                                        name_en=instance.name_en,
-                                    )
-                                ]
-                            )
+                            node = ResourceNodeBean.parse_obj(first_node)
+                            if node not in resource_node_policy:
+                                # copy part policy
+                                resource_node_policy[node] = copy_policy_by_instance_path(
+                                    policy, rg, rrt, instance, path
+                                )
+                            else:
+                                # 合并到已有的policy中
+                                resource_node_policy[node].resource_groups[0].related_resource_types[0].condition[
+                                    0
+                                ].add_instances(
+                                    [
+                                        InstanceBean(
+                                            path=[path],
+                                            type=instance.type,
+                                            name=instance.name,
+                                            name_en=instance.name_en,
+                                        )
+                                    ]
+                                )
 
         return resource_node_policy

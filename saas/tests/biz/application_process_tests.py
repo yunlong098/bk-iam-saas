@@ -120,7 +120,7 @@ class TestGradeManagerApproverHandler:
             ],
         )
 
-        handler = GradeManagerApproverHandler("test")
+        handler = GradeManagerApproverHandler("bk_cmdb")
         label_resource_policy = handler._split_label_resource_policy(policy)
 
         assert len(label_resource_policy) == 2
