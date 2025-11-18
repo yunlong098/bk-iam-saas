@@ -1460,6 +1460,7 @@
         };
       },
       selectResourceType (data, index) {
+        this.selectedIndex = index;
         data.selectedIndex = index;
         data.isError = data.aggregateResourceType.every(item => ['', this.$t(`m.verify['请选择']`)].includes(item.displayValue));
       }
