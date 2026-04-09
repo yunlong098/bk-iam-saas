@@ -424,12 +424,6 @@ class GroupMemberViewSet(GroupPermissionMixin, GenericViewSet):
 
 class GroupsMemberViewSet(GenericViewSet):
 
-    permission_classes = [RolePermission]
-    action_permission = {
-        "create": PermissionCodeEnum.MANAGE_GROUP.value,
-        "destroy": PermissionCodeEnum.MANAGE_GROUP.value,
-    }
-
     queryset = Group.objects.all()
     serializer_class = GroupsAddMemberSLZ
 
@@ -574,10 +568,6 @@ class GroupsMemberViewSet(GenericViewSet):
 
 
 class GroupsMemberRenewViewSet(GenericViewSet):
-    permission_classes = [RolePermission]
-    action_permission = {
-        "create": PermissionCodeEnum.MANAGE_GROUP.value,
-    }
 
     group_biz = GroupBiz()
 
@@ -666,7 +656,10 @@ class GroupMemberUpdateExpiredAtViewSet(GroupPermissionMixin, GenericViewSet):
 class GroupTemplateViewSet(GroupPermissionMixin, GenericViewSet):
 
     permission_classes = [RolePermission]
-    action_permission = {"create": PermissionCodeEnum.MANAGE_GROUP.value}
+    action_permission = {
+        "create": PermissionCodeEnum.MANAGE_GROUP.value,
+        "destroy": PermissionCodeEnum.MANAGE_GROUP.value,
+    }
 
     pagination_class = None  # 去掉 swagger 中的 limit offset 参数
     queryset = Group.objects.all()
@@ -709,7 +702,7 @@ class GroupTemplateViewSet(GroupPermissionMixin, GenericViewSet):
     )
     @view_audit_decorator(TemplateMemberDeleteAuditProvider)
     def destroy(self, request, *args, **kwargs):
-        group = self.get_object()
+        group = get_object_or_404(self.queryset, pk=kwargs["id"])
         template_id = kwargs["template_id"]
         template = get_object_or_404(PermTemplate.objects.all(), pk=template_id)
 
